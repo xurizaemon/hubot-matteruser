@@ -12,6 +12,7 @@ class Matteruser extends Adapter
         mmWSSPort = process.env.MATTERMOST_WSS_PORT or '443'
         mmHTTPPort = process.env.MATTERMOST_HTTP_PORT or null
         @mmNoReply = process.env.MATTERMOST_REPLY == 'false'
+        @mmIgnoreUsers = process.env.MATTERMOST_IGNORE_USERS?.split(',') or []
 
         unless mmHost?
             @robot.logger.emergency "MATTERMOST_HOST is required"
@@ -97,6 +98,7 @@ class Matteruser extends Adapter
         return true
 
     send: (envelope, strings...) ->
+        console.log('send')
         # Check if the target room is also a user's username
         user = @robot.brain.userForName(envelope.room)
 
@@ -156,6 +158,11 @@ class Matteruser extends Adapter
             @client.customMessage(postData, postData.channel_id)
 
     message: (msg) =>
+        if msg.data.sender_name in @mmIgnoreUsers
+          console.log('User %s is in MATTERMOST_IGNORE_USERS, ignoring them.', msg.data.sender_name)
+          return
+
+        console.log('message')
         @robot.logger.debug msg
         mmPost = JSON.parse msg.data.post
         mmUser = @client.getUserByID mmPost.user_id
